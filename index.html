@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clone Booth">
+<meta name="theme-color" content="#101014">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Clone Booth</title>
+<style>
+:root{
+  --bg:#101014; --panel:#1a1a21; --panel2:#232330; --line:#2e2e3b;
+  --ink:#f3f1ea; --muted:#9a98a8; --accent:#ffb020; --accent2:#2ef2c8; --danger:#ff5c6c;
+  --radius:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;overscroll-behavior:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;min-height:48px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+button:active{transform:scale(.97)}
+button.on{background:var(--accent);color:#1a1200;border-color:var(--accent);font-weight:700}
+button:disabled{opacity:.4;pointer-events:none}
+header{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+header h1{font-size:20px;margin:0;letter-spacing:.5px;font-weight:800}
+header h1 span{color:var(--accent)}
+.tabs{display:flex;gap:6px;margin-left:auto;background:var(--panel);padding:4px;border-radius:999px}
+.tabs button{border:none;background:transparent;border-radius:999px;min-height:40px;padding:6px 16px}
+.tabs button.on{background:var(--ink);color:#111}
+.badge{background:var(--accent);color:#1a1200;border-radius:999px;padding:1px 8px;font-size:13px;font-weight:700}
+#helpBtn{border-radius:50%;width:44px;min-height:44px;padding:0;font-weight:800}
+main{flex:1;display:flex;flex-direction:column;min-height:0}
+#stage{flex:1;position:relative;min-height:0;background:#000;overflow:hidden}
+#video,#canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+#video.mirror{transform:scaleX(-1)}
+#canvas{touch-action:none}
+.hidden{display:none!important}
+#countdown{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:min(40vw,260px);font-weight:900;color:#fff;text-shadow:0 0 40px rgba(0,0,0,.8);pointer-events:none;opacity:0;transition:opacity .15s}
+#countdown.show{opacity:1}
+#countdown small{font-size:24px;font-weight:600;margin-top:-10px;opacity:.9}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#flash.go{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:.95}100%{opacity:0}}
+.pill{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;background:rgba(16,16,20,.82);border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:15px;max-width:92%;text-align:center;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.pill.top{bottom:auto;top:14px}
+#busy{position:absolute;top:14px;right:14px;background:rgba(16,16,20,.85);border:1px solid var(--line);padding:8px 14px;border-radius:999px;font-size:14px}
+#noCam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--muted);font-size:17px;line-height:1.5}
+.controls{display:flex;flex-direction:column;gap:10px;padding:10px 14px;background:var(--panel);border-top:1px solid var(--line)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row.center{justify-content:center}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:none;background:transparent;min-height:40px;padding:6px 14px;border-radius:999px}
+.seg button.on{background:var(--ink);color:#111}
+#shutter{width:84px;height:84px;min-height:84px;border-radius:50%;background:#fff;border:6px solid #999;padding:0;font-size:0}
+#shutter:active{background:#ddd}
+.label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.grow{flex:1}
+#fxStrip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#fxStrip::-webkit-scrollbar{display:none}
+#fxStrip button{flex-direction:column;gap:4px;min-width:84px;padding:8px 6px;font-size:13px}
+#fxStrip button .ic{font-size:26px;line-height:1}
+#fxStrip.off{opacity:.45}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);height:44px}
+#strip{display:flex;gap:8px;padding:8px 14px calc(8px + env(safe-area-inset-bottom));overflow-x:auto;background:var(--bg);border-top:1px solid var(--line);min-height:92px;scrollbar-width:none}
+#strip::-webkit-scrollbar{display:none}
+#strip:empty::after{content:"Your photos will appear here";color:var(--muted);font-size:14px;align-self:center;padding-left:4px}
+.thumb{position:relative;flex:0 0 auto;width:100px;height:75px;border-radius:10px;overflow:hidden;border:2px solid var(--line);background:#000}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.thumb .tag{position:absolute;left:0;bottom:0;right:0;background:rgba(0,0,0,.6);font-size:11px;padding:2px 6px;color:#fff}
+.thumb .x{position:absolute;top:2px;right:2px;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;background:rgba(0,0,0,.65);border:none;font-size:14px;color:#fff}
+.thumb.plate{border-style:dashed}
+#toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:#111;padding:12px 18px;border-radius:999px;display:flex;gap:14px;align-items:center;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:20}
+#toast button{min-height:36px;padding:6px 12px;background:#111;color:#fff;border:none;border-radius:999px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:24px 26px;max-width:560px;width:92vw;font-size:17px;line-height:1.5}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{margin:0 0 10px;font-size:24px}
+dialog ol{padding-left:22px;margin:0 0 14px}
+dialog li{margin-bottom:8px}
+dialog img{max-width:100%;border-radius:12px;display:block;margin:10px auto}
+.danger{color:var(--danger)}
+@media (max-width:700px){ header h1{font-size:17px} .tabs button{padding:6px 12px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Clone <span>Booth</span></h1>
+  <nav class="tabs">
+    <button id="tabCam" class="on">Camera</button>
+    <button id="tabEdit">Edit <span id="shotCount" class="badge hidden">0</span></button>
+  </nav>
+  <button id="helpBtn" aria-label="Help">?</button>
+</header>
+<main>
+  <section id="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="canvas" class="hidden"></canvas>
+    <div id="noCam" class="hidden"></div>
+    <div id="countdown"></div>
+    <div id="flash"></div>
+    <div id="hint" class="pill hidden"></div>
+    <div id="busy" class="hidden">Cutting out…</div>
+  </section>
+
+  <section id="camControls" class="controls">
+    <div class="row center">
+      <button id="flipBtn">🔄 Flip</button>
+      <div class="seg" id="timerSeg">
+        <button data-t="0">0s</button><button data-t="3">3s</button><button data-t="5" class="on">5s</button><button data-t="10">10s</button>
+      </div>
+      <button id="plateBtn">🏞️ Empty scene</button>
+    </div>
+    <div class="row center">
+      <button id="importBtn">📂 Import</button>
+      <button id="shutter" aria-label="Take photo">Shoot</button>
+      <button id="seriesBtn">🎞️ Series ×4</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+  </section>
+
+  <section id="editControls" class="controls hidden">
+    <div id="fxStrip" class="off"></div>
+    <div class="row">
+      <span class="label">Cut-out</span>
+      <input type="range" id="sens" min="1" max="100" value="80">
+      <button id="sceneBtn" class="hidden">Scene: Empty shot</button>
+    </div>
+    <div class="row">
+      <button id="frontBtn" disabled>⬆️ Front</button>
+      <button id="backBtn" disabled>⬇️ Back</button>
+      <button id="allBtn" disabled>Apply to all</button>
+      <button id="removeBtn" disabled class="danger">🗑️ Remove</button>
+      <span class="grow"></span>
+      <button id="addBtn">📷 Add more</button>
+      <button id="saveBtn" class="on">💾 Save photo</button>
+    </div>
+  </section>
+
+  <section id="strip"></section>
+</main>
+
+<dialog id="help">
+  <h2>How to make clones</h2>
+  <ol>
+    <li><b>Prop the iPad up</b> so it does not move at all. A stand, a shelf or a pile of books works.</li>
+    <li>Tap <b>Empty scene</b> and step out of the picture. This teaches the app what the room looks like without you.</li>
+    <li>Pick a timer, tap the big <b>Shoot</b> button, and get into the picture. Do it again standing somewhere new each time. <b>Series ×4</b> takes four photos in a row so you can hop between spots.</li>
+    <li>Go to <b>Edit</b>. Every copy of you appears in one picture. <b>Tap a body</b> to choose an effect: ghost, censor, glitch, hologram and more. <b>Drag</b> a body to move it.</li>
+    <li>Tap <b>Save photo</b> to keep your creation.</li>
+  </ol>
+  <p style="color:var(--muted);font-size:15px">Tips: keep the lighting steady, wear clothes that are a different colour from the wall, and use the Cut-out slider if too much or too little of you is showing. No empty scene? Take at least three photos and the app will work it out.</p>
+  <button id="helpClose" class="on" style="width:100%">Got it</button>
+</dialog>
+
+<dialog id="saveDlg">
+  <h2>Your photo</h2>
+  <p>Press and hold the picture, then choose <b>Save to Photos</b> (or <b>Add to Photos</b>).</p>
+  <img id="saveImg" alt="Your clone photo">
+  <button id="saveClose" class="on" style="width:100%">Done</button>
+</dialog>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const video=$('#video'), canvas=$('#canvas'), cd=$('#countdown'), flashEl=$('#flash'), hint=$('#hint'), busyEl=$('#busy'), noCam=$('#noCam'), strip=$('#strip');
+const S = 4;           // mask downsample factor
+const MAXSIDE = 1280;  // capture size cap
+const ACCENT = '#ffb020';
+
+const state = {
+  mode:'camera', facing:'user', stream:null, W:0, H:0,
+  plate:null, shots:[], threshold:42, useAuto:false, timer:5,
+  bg:null, bgLo:null, bgCanvas:null, bgDirty:true, selected:null, busy:false,
+};
+
+const EFFECTS = [
+  {id:'normal',  name:'Normal',   ic:'🙂'},
+  {id:'ghost',   name:'Ghost',    ic:'👻'},
+  {id:'censor',  name:'Censor',   ic:'🟫'},
+  {id:'blur',    name:'Blur',     ic:'🌫️'},
+  {id:'negative',name:'Negative', ic:'🎞️'},
+  {id:'shadow',  name:'Shadow',   ic:'🕴️'},
+  {id:'neon',    name:'Neon',     ic:'🟢'},
+  {id:'glitch',  name:'Glitch',   ic:'📺'},
+  {id:'holo',    name:'Hologram', ic:'🔵'},
+  {id:'thermal', name:'Thermal',  ic:'🔥'},
+  {id:'outline', name:'Outline',  ic:'✏️'},
+  {id:'hide',    name:'Hide',     ic:'🫥'},
+];
+
+/* ---------- utilities ---------- */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const nextFrame = () => new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+function mk(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function full(){ return mk(state.W,state.H); }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; } }
+
+let audio=null;
+function beep(freq=440, dur=0.07){
+  try{
+    audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+    if(audio.state==='suspended') audio.resume();
+    const o=audio.createOscillator(), g=audio.createGain();
+    o.type='sine'; o.frequency.value=freq; g.gain.value=0.15;
+    o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
+  }catch(e){}
+}
+
+/* ---------- camera ---------- */
+async function startCamera(){
+  stopCamera();
+  noCam.classList.add('hidden');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    noCam.textContent='This browser cannot use the camera. You can still Import photos.'; noCam.classList.remove('hidden'); return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode: state.facing, width:{ideal:1280}, height:{ideal:960} }, audio:false });
+    state.stream=stream; video.srcObject=stream; await video.play().catch(()=>{});
+    video.classList.toggle('mirror', state.facing==='user');
+  }catch(e){
+    noCam.innerHTML='Camera not available.<br>Allow camera access in Safari settings, or Import photos instead.';
+    noCam.classList.remove('hidden');
+  }
+}
+function stopCamera(){ if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; } }
+
+function ensureSize(w,h){
+  if(state.W) return;
+  const s=Math.min(1, MAXSIDE/Math.max(w,h));
+  state.W=Math.round(w*s)&~1; state.H=Math.round(h*s)&~1;
+}
+function drawCover(ctx, src, sw, sh, mirror){
+  const {W,H}=state; const sc=Math.max(W/sw, H/sh); const dw=sw*sc, dh=sh*sc;
+  ctx.save(); if(mirror){ ctx.translate(W,0); ctx.scale(-1,1); }
+  ctx.drawImage(src, (W-dw)/2, (H-dh)/2, dw, dh); ctx.restore();
+}
+function captureFrame(){
+  const vw=video.videoWidth, vh=video.videoHeight; if(!vw) return null;
+  ensureSize(vw,vh);
+  const c=full(), ctx=c.getContext('2d');
+  drawCover(ctx, video, vw, vh, state.facing==='user');
+  return ctx.getImageData(0,0,state.W,state.H);
+}
+function flash(){ flashEl.classList.remove('go'); void flashEl.offsetWidth; flashEl.classList.add('go'); beep(1200,0.05); }
+
+async function countdown(secs, label){
+  if(secs<=0){ return; }
+  cd.classList.add('show');
+  for(let n=secs;n>0;n--){
+    cd.innerHTML = n + (label?`<small>${label}</small>`:''); beep(n===1?880:440); await sleep(1000);
+  }
+  cd.classList.remove('show');
+}
+async function shoot(kind){
+  if(state.busy) return; state.busy=true;
+  try{
+    await countdown(state.timer, kind==='plate'?'empty scene':'');
+    const img=captureFrame(); flash();
+    if(!img) return;
+    if(kind==='plate'){ state.plate=img; state.plateThumb=null; state.useAuto=false; state.bgDirty=true; invalidateMasks(); }
+    else addShot(img);
+    renderStrip(); updateCount();
+  } finally { state.busy=false; }
+}
+async function series(){
+  if(state.busy) return; state.busy=true;
+  try{
+    const gap=Math.max(3,state.timer);
+    for(let i=1;i<=4;i++){
+      await countdown(gap, `photo ${i} of 4`);
+      const img=captureFrame(); flash(); if(img) addShot(img); renderStrip(); updateCount();
+    }
+  } finally { state.busy=false; }
+}
+
+/* ---------- shots ---------- */
+function makeThumb(img){
+  const c=full(); c.getContext('2d').putImageData(img,0,0);
+  const t=mk(160, Math.round(160*state.H/state.W)); t.getContext('2d').drawImage(c,0,0,t.width,t.height);
+  return t.toDataURL('image/jpeg',0.7);
+}
+function addShot(img){
+  state.shots.push({ id:Date.now()+Math.random(), img, thumb:makeThumb(img), lo:downsample(img), effect:'normal', ox:0, oy:0, seed:Math.random()*1e9|0, maskLo:null, mask:null, cutImg:null, cutout:null, fx:null, sil:null });
+  state.bgDirty=true; invalidateMasks();
+}
+function removeShot(id){
+  const i=state.shots.findIndex(s=>s.id===id); if(i<0) return;
+  const [s]=state.shots.splice(i,1); const idx=i;
+  if(state.selected===id) state.selected=null;
+  state.bgDirty=true; invalidateMasks(); afterChange();
+  toast('Photo removed', ()=>{ state.shots.splice(Math.min(idx,state.shots.length),0,s); state.bgDirty=true; invalidateMasks(); afterChange(); });
+}
+function removePlate(){
+  const p=state.plate; state.plate=null; state.plateThumb=null; state.bgDirty=true; invalidateMasks(); afterChange();
+  toast('Empty scene removed', ()=>{ state.plate=p; state.plateThumb=null; state.bgDirty=true; invalidateMasks(); afterChange(); });
+}
+function invalidateMasks(){ state.shots.forEach(s=>{ s.maskLo=null; s.mask=null; s.cutImg=null; s.cutout=null; s.fx=null; s.sil=null; }); }
+function afterChange(){
+  if(!state.shots.length && !state.plate){ state.W=0; state.H=0; }
+  renderStrip(); updateCount(); updateEditUI();
+  if(state.mode==='edit') reprocess();
+}
+
+/* ---------- background & masks ---------- */
+function downsample(img){
+  const {W,H}=state, w=Math.floor(W/S), h=Math.floor(H/S), d=img.data, inv=1/(S*S);
+  const out=new Float32Array(w*h*3);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let r=0,g=0,b=0;
+    for(let yy=0;yy<S;yy++){ let i=((y*S+yy)*W + x*S)*4; for(let xx=0;xx<S;xx++,i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; } }
+    const o=(y*w+x)*3; out[o]=r*inv; out[o+1]=g*inv; out[o+2]=b*inv;
+  }
+  return out;
+}
+function computeBackground(){
+  const {W,H}=state, n=state.shots.length;
+  if(state.plate && !state.useAuto) return state.plate;
+  if(n===0) return state.plate;
+  if(n===1) return state.shots[0].img;
+  const out=new ImageData(W,H), d=out.data, srcs=state.shots.map(s=>s.img.data), buf=new Uint8Array(n), mid=n>>1, even=(n%2===0);
+  for(let i=0;i<d.length;i+=4){
+    for(let c=0;c<3;c++){
+      for(let k=0;k<n;k++){ // insertion sort
+        let v=srcs[k][i+c], j=k; while(j>0 && buf[j-1]>v){ buf[j]=buf[j-1]; j--; } buf[j]=v;
+      }
+      d[i+c]= even ? (buf[mid-1]+buf[mid])>>1 : buf[mid];
+    }
+    d[i+3]=255;
+  }
+  return out;
+}
+function majority(src,w,h){
+  const out=new Uint8Array(w*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let c=0;
+    for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue; const row=yy*w;
+      for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=w) continue; c+=src[row+xx]; } }
+    out[y*w+x]= c>=5?1:0;
+  }
+  return out;
+}
+function dilate(src,w,h){
+  const out=new Uint8Array(w*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let v=0;
+    for(let dy=-1;dy<=1&&!v;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue;
+      for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=w) continue; if(src[yy*w+xx]){v=1;break;} } }
+    out[y*w+x]=v;
+  }
+  return out;
+}
+// remove blobs smaller than minArea; fill enclosed holes smaller than maxHole
+function cleanBlobs(bin,w,h,minArea,maxHole){
+  const n=w*h, label=new Int32Array(n), stack=new Int32Array(n);
+  function flood(target, startP, val){ // returns {area, border}
+    let sp=0, area=0, border=false; stack[sp++]=startP; label[startP]=val;
+    while(sp){ const p=stack[--sp]; area++; const x=p%w, y=(p-x)/w;
+      if(x===0||y===0||x===w-1||y===h-1) border=true;
+      if(x>0 && bin[p-1]===target && !label[p-1]){label[p-1]=val; stack[sp++]=p-1;}
+      if(x<w-1 && bin[p+1]===target && !label[p+1]){label[p+1]=val; stack[sp++]=p+1;}
+      if(y>0 && bin[p-w]===target && !label[p-w]){label[p-w]=val; stack[sp++]=p-w;}
+      if(y<h-1 && bin[p+w]===target && !label[p+w]){label[p+w]=val; stack[sp++]=p+w;}
+    }
+    return {area,border};
+  }
+  // pass 1: small foreground blobs
+  let lab=0; const kill=[];
+  for(let p=0;p<n;p++) if(bin[p]===1 && !label[p]){ lab++; const r=flood(1,p,lab); if(r.area<minArea) kill.push(lab); }
+  if(kill.length){ const ks=new Set(kill); for(let p=0;p<n;p++) if(bin[p]===1 && ks.has(label[p])) bin[p]=0; }
+  // pass 2: holes
+  label.fill(0); lab=0; const fill=[];
+  for(let p=0;p<n;p++) if(bin[p]===0 && !label[p]){ lab++; const r=flood(0,p,lab); if(!r.border && r.area<maxHole) fill.push(lab); }
+  if(fill.length){ const fs=new Set(fill); for(let p=0;p<n;p++) if(bin[p]===0 && fs.has(label[p])) bin[p]=1; }
+  return bin;
+}
+function computeMaskLo(shot){
+  const {W,H}=state, w=Math.floor(W/S), h=Math.floor(H/S), n=w*h, a=shot.lo, b=state.bgLo, t=state.threshold;
+  let sa=0,sb=0; for(let i=0;i<a.length;i++){ sa+=a[i]; sb+=b[i]; }
+  const gain=clamp(sb/(sa||1), 0.8, 1.25);
+  let bin=new Uint8Array(n);
+  for(let p=0;p<n;p++){ const o=p*3; const dr=a[o]*gain-b[o], dg=a[o+1]*gain-b[o+1], db=a[o+2]*gain-b[o+2]; bin[p]=(dr*dr+dg*dg+db*db)>t*t?1:0; }
+  bin=majority(bin,w,h); bin=majority(bin,w,h);
+  bin=cleanBlobs(bin,w,h, n*0.004, n*0.03);
+  bin=dilate(bin,w,h);
+  // soft edge
+  const soft=new Float32Array(n);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let c=0,k=0;
+    for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue;
+      for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=w) continue; c+=bin[yy*w+xx]; k++; } }
+    soft[y*w+x]=c/k;
+  }
+  return soft;
+}
+function upscaleMask(lo){
+  const {W,H}=state, w=Math.floor(W/S), h=Math.floor(H/S), out=new Uint8ClampedArray(W*H);
+  for(let y=0;y<H;y++){
+    const fy=clamp((y+0.5)/S-0.5,0,h-1), y0=fy|0, y1=Math.min(h-1,y0+1), ty=fy-y0;
+    for(let x=0;x<W;x++){
+      const fx=clamp((x+0.5)/S-0.5,0,w-1), x0=fx|0, x1=Math.min(w-1,x0+1), tx=fx-x0;
+      const v=(lo[y0*w+x0]*(1-tx)+lo[y0*w+x1]*tx)*(1-ty)+(lo[y1*w+x0]*(1-tx)+lo[y1*w+x1]*tx)*ty;
+      out[y*W+x]=v*255;
+    }
+  }
+  return out;
+}
+
+let processToken=0;
+async function reprocess(){
+  if(!state.shots.length){ state.bg=null; state.bgCanvas=null; state.bgDirty=true; render(); return; }
+  const token=++processToken; busyEl.classList.remove('hidden'); await nextFrame();
+  if(state.bgDirty){ state.bg=computeBackground(); state.bgLo=downsample(state.bg); state.bgCanvas=full(); state.bgCanvas.getContext('2d').putImageData(state.bg,0,0); state.bgDirty=false; await nextFrame(); }
+  for(const s of state.shots){
+    if(token!==processToken) return;
+    if(!s.maskLo){ s.maskLo=computeMaskLo(s); s.mask=upscaleMask(s.maskLo); s.cutImg=null; s.cutout=null; s.fx=null; s.sil=null; await nextFrame(); }
+  }
+  if(token!==processToken) return;
+  busyEl.classList.add('hidden'); render(); updateHint();
+}
+
+/* ---------- cutouts & effects ---------- */
+function ensureCutout(s){
+  if(s.cutout) return;
+  const {W,H}=state; const img=new ImageData(new Uint8ClampedArray(s.img.data), W,H), d=img.data, m=s.mask;
+  for(let p=0,i=3;p<m.length;p++,i+=4) d[i]=m[p];
+  s.cutImg=img; s.cutout=full(); s.cutout.getContext('2d').putImageData(img,0,0);
+}
+function blurred(src, k){
+  const {W,H}=state;
+  const a=mk(Math.max(1,W>>1),Math.max(1,H>>1)); a.getContext('2d').drawImage(src,0,0,a.width,a.height);
+  const b=mk(Math.max(1,Math.round(W/k)),Math.max(1,Math.round(H/k))); b.getContext('2d').drawImage(a,0,0,b.width,b.height);
+  const c=mk(a.width,a.height); c.getContext('2d').drawImage(b,0,0,c.width,c.height);
+  const out=full(); out.getContext('2d').drawImage(c,0,0,W,H); return out;
+}
+function silhouette(s, color){
+  const out=full(), ctx=out.getContext('2d'); ctx.drawImage(s.cutout,0,0);
+  ctx.globalCompositeOperation='source-in'; ctx.fillStyle=color; ctx.fillRect(0,0,state.W,state.H); return out;
+}
+function pixelFx(s, fn){ // fn(src, out, i, x, y)
+  const {W,H}=state, src=s.cutImg.data, img=new ImageData(W,H), o=img.data;
+  for(let y=0,i=0;y<H;y++) for(let x=0;x<W;x++,i+=4) fn(src,o,i,x,y);
+  const out=full(); out.getContext('2d').putImageData(img,0,0); return out;
+}
+const THERMAL=[[20,0,70],[130,0,170],[230,40,60],[255,170,0],[255,255,210]];
+function buildFx(s){
+  ensureCutout(s);
+  const {W,H}=state;
+  switch(s.effect){
+    case 'ghost': {
+      const soft=blurred(s.cutout, 10); const sctx=soft.getContext('2d');
+      sctx.globalCompositeOperation='source-atop'; sctx.fillStyle='rgba(225,238,255,0.4)'; sctx.fillRect(0,0,W,H);
+      const out=full(), ctx=out.getContext('2d'); ctx.globalAlpha=0.42; ctx.drawImage(soft,0,0); return out;
+    }
+    case 'blur': return blurred(s.cutout, 14);
+    case 'censor': {
+      const block=Math.max(6,Math.round(W/44)), sw=Math.ceil(W/block), sh=Math.ceil(H/block);
+      const small=mk(sw,sh), sc=small.getContext('2d'); sc.drawImage(s.cutout,0,0,sw,sh);
+      const id=sc.getImageData(0,0,sw,sh), d=id.data; for(let i=3;i<d.length;i+=4) d[i]=d[i]>90?255:0; sc.putImageData(id,0,0);
+      const out=full(), ctx=out.getContext('2d'); ctx.imageSmoothingEnabled=false; ctx.drawImage(small,0,0,sw*block,sh*block); return out;
+    }
+    case 'negative': return pixelFx(s,(src,o,i)=>{ o[i]=255-src[i]; o[i+1]=255-src[i+1]; o[i+2]=255-src[i+2]; o[i+3]=src[i+3]; });
+    case 'shadow': return silhouette(s,'rgba(6,6,12,0.93)');
+    case 'neon': {
+      const sil=silhouette(s,'#39ff14'), glow=blurred(sil,8), out=full(), ctx=out.getContext('2d');
+      ctx.globalAlpha=0.85; ctx.drawImage(glow,0,0); ctx.globalAlpha=1; ctx.drawImage(sil,0,0); return out;
+    }
+    case 'glitch': {
+      const dx=Math.max(4,Math.round(W*0.012))*4;
+      const split=pixelFx(s,(src,o,i,x)=>{
+        const il= x*4>=dx ? i-dx : i, ir= (x+dx/4)<W ? i+dx : i;
+        o[i]=src[il]; o[i+1]=src[i+1]; o[i+2]=src[ir+2]; o[i+3]=Math.max(src[il+3],src[i+3],src[ir+3]);
+      });
+      const rnd=mulberry32(s.seed), out=full(), ctx=out.getContext('2d'); ctx.drawImage(split,0,0);
+      for(let k=0;k<14;k++){
+        const y=Math.floor(rnd()*H), hb=4+Math.floor(rnd()*Math.max(8,H*0.04)), off=Math.round((rnd()-0.5)*W*0.12);
+        ctx.clearRect(0,y,W,hb); ctx.drawImage(split,0,y,W,hb, off,y,W,hb);
+      }
+      return out;
+    }
+    case 'holo': return pixelFx(s,(src,o,i,x,y)=>{
+      const l=0.3*src[i]+0.59*src[i+1]+0.11*src[i+2], k=(y%3===0)?0.55:1;
+      o[i]=l*0.2*k; o[i+1]=Math.min(255,l*0.85+70)*k; o[i+2]=Math.min(255,l*0.5+170)*k; o[i+3]=src[i+3]*0.78;
+    });
+    case 'thermal': return pixelFx(s,(src,o,i)=>{
+      const t=clamp((0.3*src[i]+0.59*src[i+1]+0.11*src[i+2])/255,0,0.999)*(THERMAL.length-1), j=t|0, f=t-j, A=THERMAL[j], B=THERMAL[j+1];
+      o[i]=A[0]+(B[0]-A[0])*f; o[i+1]=A[1]+(B[1]-A[1])*f; o[i+2]=A[2]+(B[2]-A[2])*f; o[i+3]=src[i+3];
+    });
+    case 'outline': {
+      const src=s.cutImg.data, lum=new Float32Array(W*H);
+      for(let p=0,i=0;p<lum.length;p++,i+=4) lum[p]=(0.3*src[i]+0.59*src[i+1]+0.11*src[i+2])*(src[i+3]/255);
+      const img=new ImageData(W,H), o=img.data, m=s.mask;
+      for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){
+        const p=y*W+x;
+        const gx=-lum[p-W-1]-2*lum[p-1]-lum[p+W-1]+lum[p-W+1]+2*lum[p+1]+lum[p+W+1];
+        const gy=-lum[p-W-1]-2*lum[p-W]-lum[p-W+1]+lum[p+W-1]+2*lum[p+W]+lum[p+W+1];
+        const ax=(m[p+1]-m[p-1]), ay=(m[p+W]-m[p-W]);
+        const e=Math.min(255, Math.sqrt(gx*gx+gy*gy)*0.9 + Math.sqrt(ax*ax+ay*ay)*1.4);
+        const i=p*4; o[i]=255; o[i+1]=255; o[i+2]=255; o[i+3]= e>40? e : 0;
+      }
+      const out=full(); out.getContext('2d').putImageData(img,0,0); return out;
+    }
+    default: return s.cutout;
+  }
+}
+
+/* ---------- render ---------- */
+function drawScene(ctx, final){
+  const {W,H}=state;
+  if(state.bgCanvas) ctx.drawImage(state.bgCanvas,0,0); else { ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); }
+  const r=Math.max(3,Math.round(W/300));
+  for(const s of state.shots){
+    if(s.effect==='hide' && final) continue;
+    if(!s.mask) continue;
+    ensureCutout(s);
+    if(!final && s.id===state.selected){
+      if(!s.sil) s.sil=silhouette(s,ACCENT);
+      for(let k=0;k<8;k++){ const a=k*Math.PI/4; ctx.drawImage(s.sil, s.ox+Math.round(Math.cos(a)*r), s.oy+Math.round(Math.sin(a)*r)); }
+    }
+    if(s.effect==='hide') continue;
+    if(!s.fx) s.fx=buildFx(s);
+    ctx.drawImage(s.fx, s.ox, s.oy);
+  }
+}
+function render(){
+  if(!state.W){ canvas.width=4; canvas.height=3; return; }
+  if(canvas.width!==state.W||canvas.height!==state.H){ canvas.width=state.W; canvas.height=state.H; }
+  drawScene(canvas.getContext('2d'), false);
+}
+
+/* ---------- pointer / hit test ---------- */
+function toImg(e){
+  const r=canvas.getBoundingClientRect(), sc=Math.min(r.width/state.W, r.height/state.H), dw=state.W*sc, dh=state.H*sc;
+  return { x:(e.clientX-r.left-(r.width-dw)/2)/sc, y:(e.clientY-r.top-(r.height-dh)/2)/sc };
+}
+function hitTest(p){
+  const w=Math.floor(state.W/S), h=Math.floor(state.H/S);
+  for(let i=state.shots.length-1;i>=0;i--){
+    const s=state.shots[i]; if(!s.maskLo) continue;
+    const lx=Math.round((p.x-s.ox)/S), ly=Math.round((p.y-s.oy)/S);
+    for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
+      const xx=lx+dx, yy=ly+dy; if(xx<0||yy<0||xx>=w||yy>=h) continue;
+      if(s.maskLo[yy*w+xx]>0.4) return s;
+    }
+  }
+  return null;
+}
+let drag=null;
+canvas.addEventListener('pointerdown', e=>{
+  if(state.mode!=='edit') return; e.preventDefault();
+  const p=toImg(e), s=hitTest(p);
+  if(s){ select(s.id); drag={id:s.id, sx:p.x, sy:p.y, ox:s.ox, oy:s.oy}; canvas.setPointerCapture(e.pointerId); }
+  else select(null);
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!drag) return; const s=state.shots.find(x=>x.id===drag.id); if(!s) return;
+  const p=toImg(e); s.ox=Math.round(drag.ox+p.x-drag.sx); s.oy=Math.round(drag.oy+p.y-drag.sy); render();
+});
+const endDrag=()=>{ drag=null; };
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+
+function select(id){ state.selected=id; updateEditUI(); renderStrip(); render(); }
+function selectedShot(){ return state.shots.find(s=>s.id===state.selected)||null; }
+function setEffect(s, fx){ s.effect=fx; s.fx=null; }
+
+/* ---------- UI ---------- */
+function setMode(m){
+  state.mode=m;
+  $('#tabCam').classList.toggle('on', m==='camera'); $('#tabEdit').classList.toggle('on', m==='edit');
+  video.classList.toggle('hidden', m!=='camera'); canvas.classList.toggle('hidden', m!=='edit');
+  $('#camControls').classList.toggle('hidden', m!=='camera'); $('#editControls').classList.toggle('hidden', m!=='edit');
+  noCam.classList.toggle('hidden', m!=='camera' || !!state.stream);
+  if(m==='edit'){ render(); reprocess(); } else { hint.classList.add('hidden'); }
+  updateEditUI(); renderStrip(); updateHint();
+}
+function updateCount(){ const n=state.shots.length, b=$('#shotCount'); b.textContent=n; b.classList.toggle('hidden', n===0); }
+function updateHint(){
+  if(state.mode!=='edit'){ hint.classList.add('hidden'); return; }
+  let msg='';
+  if(!state.shots.length) msg='No photos yet. Go to Camera and take some.';
+  else if(!state.plate && state.shots.length<3) msg='Tip: shoot the Empty scene, or take 3+ photos, for clean cut-outs.';
+  else if(!state.selected) msg='Tap a body to pick an effect. Drag to move it.';
+  hint.textContent=msg; hint.classList.toggle('hidden', !msg);
+}
+function updateEditUI(){
+  const s=selectedShot();
+  $('#fxStrip').classList.toggle('off', !s);
+  document.querySelectorAll('#fxStrip button').forEach(b=> b.classList.toggle('on', !!s && b.dataset.fx===s.effect));
+  ['#frontBtn','#backBtn','#allBtn','#removeBtn'].forEach(q=> $(q).disabled=!s);
+  $('#sceneBtn').classList.toggle('hidden', !state.plate);
+  $('#sceneBtn').textContent= state.useAuto ? 'Scene: Auto' : 'Scene: Empty shot';
+  $('#saveBtn').disabled=!state.shots.length;
+  updateHint();
+}
+function renderStrip(){
+  strip.innerHTML='';
+  if(state.plate){
+    const t=document.createElement('div'); t.className='thumb plate';
+    if(!state.plateThumb) state.plateThumb=makeThumb(state.plate);
+    const im=new Image(); im.src=state.plateThumb; t.appendChild(im);
+    t.insertAdjacentHTML('beforeend','<div class="tag">Empty scene</div><button class="x" aria-label="Remove">✕</button>');
+    t.querySelector('.x').onclick=e=>{ e.stopPropagation(); removePlate(); };
+    strip.appendChild(t);
+  }
+  state.shots.forEach((s,i)=>{
+    const t=document.createElement('div'); t.className='thumb'+(s.id===state.selected?' sel':'');
+    const im=new Image(); im.src=s.thumb; t.appendChild(im);
+    const fx=EFFECTS.find(e=>e.id===s.effect);
+    t.insertAdjacentHTML('beforeend',`<div class="tag">${i+1}${s.effect!=='normal'?' · '+fx.ic+' '+fx.name:''}</div><button class="x" aria-label="Remove">✕</button>`);
+    t.querySelector('.x').onclick=e=>{ e.stopPropagation(); removeShot(s.id); };
+    t.onclick=()=>{ if(state.mode==='edit') select(s.id===state.selected?null:s.id); };
+    strip.appendChild(t);
+  });
+}
+let toastTimer=null;
+function toast(msg, undo){
+  const old=$('#toast'); if(old) old.remove();
+  const t=document.createElement('div'); t.id='toast'; t.innerHTML=`<span>${msg}</span>`;
+  if(undo){ const b=document.createElement('button'); b.textContent='Undo'; b.onclick=()=>{ undo(); t.remove(); }; t.appendChild(b); }
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.remove(), 6000);
+}
+
+// effect strip
+const fxStrip=$('#fxStrip');
+EFFECTS.forEach(e=>{
+  const b=document.createElement('button'); b.dataset.fx=e.id; b.innerHTML=`<span class="ic">${e.ic}</span>${e.name}`;
+  b.onclick=()=>{ const s=selectedShot(); if(!s){ toast('Tap a body first'); return; } setEffect(s,e.id); updateEditUI(); renderStrip(); render(); };
+  fxStrip.appendChild(b);
+});
+
+$('#tabCam').onclick=()=>setMode('camera');
+$('#tabEdit').onclick=()=>setMode('edit');
+$('#addBtn').onclick=()=>setMode('camera');
+$('#flipBtn').onclick=()=>{ state.facing= state.facing==='user'?'environment':'user'; startCamera(); };
+document.querySelectorAll('#timerSeg button').forEach(b=> b.onclick=()=>{ state.timer=+b.dataset.t; document.querySelectorAll('#timerSeg button').forEach(x=>x.classList.toggle('on',x===b)); });
+$('#shutter').onclick=()=>shoot('shot');
+$('#plateBtn').onclick=()=>shoot('plate');
+$('#seriesBtn').onclick=series;
+$('#importBtn').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=async e=>{
+  const files=[...e.target.files]; e.target.value='';
+  for(const f of files){
+    const url=URL.createObjectURL(f);
+    const im=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; }).catch(()=>null);
+    URL.revokeObjectURL(url); if(!im) continue;
+    ensureSize(im.naturalWidth, im.naturalHeight);
+    const c=full(); drawCover(c.getContext('2d'), im, im.naturalWidth, im.naturalHeight, false);
+    addShot(c.getContext('2d').getImageData(0,0,state.W,state.H));
+  }
+  renderStrip(); updateCount(); if(files.length) setMode('edit');
+};
+let sensTimer=null;
+$('#sens').oninput=e=>{
+  state.threshold=Math.round(130 - (+e.target.value)*1.1);
+  clearTimeout(sensTimer); sensTimer=setTimeout(()=>{ invalidateMasks(); reprocess(); }, 120);
+};
+$('#sceneBtn').onclick=()=>{ state.useAuto=!state.useAuto; state.bgDirty=true; invalidateMasks(); updateEditUI(); reprocess(); };
+$('#frontBtn').onclick=()=>{ const s=selectedShot(); if(!s) return; const i=state.shots.indexOf(s); if(i<state.shots.length-1){ state.shots.splice(i,1); state.shots.splice(i+1,0,s); renderStrip(); render(); } };
+$('#backBtn').onclick=()=>{ const s=selectedShot(); if(!s) return; const i=state.shots.indexOf(s); if(i>0){ state.shots.splice(i,1); state.shots.splice(i-1,0,s); renderStrip(); render(); } };
+$('#allBtn').onclick=()=>{ const s=selectedShot(); if(!s) return; state.shots.forEach(x=>setEffect(x,s.effect)); renderStrip(); render(); };
+$('#removeBtn').onclick=()=>{ const s=selectedShot(); if(s) removeShot(s.id); };
+$('#saveBtn').onclick=()=>{
+  if(!state.shots.length) return;
+  const c=full(); drawScene(c.getContext('2d'), true);
+  c.toBlob(async blob=>{
+    const file=new File([blob],'clone-booth.jpg',{type:'image/jpeg'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'Clone Booth'}); return; }catch(err){ if(err && err.name==='AbortError') return; }
+    }
+    $('#saveImg').src=URL.createObjectURL(blob); $('#saveDlg').showModal();
+  }, 'image/jpeg', 0.92);
+};
+$('#saveClose').onclick=()=>$('#saveDlg').close();
+$('#helpBtn').onclick=()=>$('#help').showModal();
+$('#helpClose').onclick=()=>$('#help').close();
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && state.mode==='camera' && !state.stream) startCamera(); });
+window.addEventListener('resize', ()=>{ if(state.mode==='edit') render(); });
+
+if(!localStorage.getItem('cloneBoothSeen')){ try{ localStorage.setItem('cloneBoothSeen','1'); }catch(e){} $('#help').showModal(); }
+startCamera();
+})();
+</script>
+</body>
+</html>
